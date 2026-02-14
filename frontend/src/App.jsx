@@ -117,9 +117,11 @@ function App() {
       wsRef.current = ws;
 
       ws.onopen = () => {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)({
-          sampleRate: 16000,
-        });
+        let ctx = audioContextRef.current;
+        if (!ctx || ctx.state === "closed") {
+          ctx = new (window.AudioContext || window.webkitAudioContext)();
+          audioContextRef.current = ctx;
+        }
         audioContextRef.current = ctx;
         const source = ctx.createMediaStreamSource(stream);
         const processor = ctx.createScriptProcessor(4096, 1, 1);
@@ -187,6 +189,10 @@ function App() {
       ws.close();
     }
     wsRef.current = null;
+    if (ctx && ctx.state !== "closed") {
+      await ctx.close();
+    }
+    audioContextRef.current = null;
 
     if (recorder && recorder.state === "inactive") {
       setStatus("idle");
