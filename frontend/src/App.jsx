@@ -34,6 +34,14 @@ function App() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [showSlidePlayer, setShowSlidePlayer] = useState(false);
 
+  // Slide Chat state
+  const [slideContext, setSlideContext] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput] = useState("");
+  const [isChatting, setIsChatting] = useState(false);
+  const [sidebarTab, setSidebarTab] = useState("notes"); // "notes" | "chat"
+
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
   const wsRef = useRef(null);
@@ -45,9 +53,36 @@ function App() {
   const slideInputRef = useRef(null);
 
   // ── PDF processing ───────────────────────────────────────────────
+  const analyzeSlides = async (images) => {
+    if (isAnalyzing || slideContext) return; // Prevent duplicate work
+    setIsAnalyzing(true);
+    try {
+      const res = await fetch(`${API_BASE}/slides/analyze`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ images }),
+      });
+
+      if (res.status === 429) {
+        throw new Error("Rate limit reached. Please wait a minute and try again.");
+      }
+
+      if (!res.ok) throw new Error("Failed to analyze slides");
+      const data = await res.json();
+      setSlideContext(data);
+    } catch (err) {
+      console.error(err);
+      setChatMessages(prev => [...prev, { role: "model", content: "Error: " + err.message }]);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   const processPdf = useCallback(async (file) => {
     setSlideProcessing(true);
     setError("");
+    setSlideContext(null);
+    setChatMessages([]);
     try {
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -55,18 +90,20 @@ function App() {
 
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
-        const scale = 2;
+        const scale = 1.0; // Minimal scale for analysis visibility
         const viewport = page.getViewport({ scale });
         const canvas = document.createElement("canvas");
         canvas.width = viewport.width;
         canvas.height = viewport.height;
         const ctx = canvas.getContext("2d");
         await page.render({ canvasContext: ctx, viewport }).promise;
-        pages.push(canvas.toDataURL("image/png"));
+        // Use JPEG with 0.5 quality to be extremely lean
+        pages.push(canvas.toDataURL("image/jpeg", 0.5));
       }
 
       setSlidePages(pages);
       setSlideFile(file);
+
     } catch (err) {
       setError("Failed to process PDF: " + (err.message || "Unknown error"));
       setSlideFile(null);
@@ -272,6 +309,69 @@ function App() {
     }
   };
 
+  const handleChatParams = async (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleChatSubmit();
+    }
+  };
+
+  const handleChatSubmit = async () => {
+    if (!chatInput.trim() || isChatting) return;
+
+    const userMsg = { role: "user", content: chatInput };
+    setChatMessages(prev => [...prev, userMsg]);
+    setChatInput("");
+    setIsChatting(true);
+
+    try {
+      // Prepare history (limit to last 10 messages to keep payload small)
+      // Filter out only role/content
+      const history = chatMessages.slice(-10).map(m => ({
+        role: m.role,
+        content: m.content
+      }));
+
+      const res = await fetch(`${API_BASE}/slides/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query: userMsg.content,
+          context: slideContext || [],
+          current_slide: currentSlide,
+          history: history
+        }),
+      });
+
+      if (!res.ok) throw new Error("Chat failed");
+
+      const data = await res.json();
+      setChatMessages(prev => [...prev, { role: "model", content: data.answer }]);
+
+      if (data.suggested_slide !== null && data.suggested_slide !== undefined) {
+        // Slide numbers are 1-based in context but 0-based in array
+        // Backend returns 0-based index ideally, or let's assume backend returns 1-based.
+        // Wait, my service returns suggested_slide as int.
+        // Let's assume the service logic returns 1-based slide number to be safe? 
+        // Actually in chat_with_slides I didn't specify. 
+        // Let's assume the LLM might return 1-based. 
+        // Safe bet: if it's < 0 it's invalid. If it's > length it's invalid.
+        // Let's treat it as 0-indexed if it's 0. If it's 1 it might be index 1.
+        // The prompt says "CURRENT SLIDE: {current_slide + 1}".
+        // So likely it returns 1-based.
+        const target = data.suggested_slide - 1;
+        if (target >= 0 && target < slidePages.length) {
+          setCurrentSlide(target);
+        }
+      }
+
+    } catch (err) {
+      setChatMessages(prev => [...prev, { role: "model", content: "Sorry, I encountered an error." }]);
+    } finally {
+      setIsChatting(false);
+    }
+  };
+
   // ── File upload (audio) ──────────────────────────────────────────
   const handleFileUpload = async (eOrFile) => {
     const file =
@@ -341,6 +441,8 @@ function App() {
     setSlideProcessing(false);
     setCurrentSlide(0);
     setShowSlidePlayer(false);
+    setSlideContext(null);
+    setChatMessages([]);
   };
 
   const goToSlidePlayer = () => {
@@ -421,22 +523,86 @@ function App() {
             </div>
           </div>
 
-          {/* Transcript alongside */}
+          {/* Transcript & Chat alongside */}
           <aside className="slide-transcript-panel">
-            <h3>Lecture Notes</h3>
-            <div className="slide-transcript-content">
-              {polishedTranscript ? (
-                <pre className="transcript">{polishedTranscript}</pre>
-              ) : transcript ? (
-                <pre className="transcript">{transcript}</pre>
-              ) : (
-                <p className="placeholder">No transcript available</p>
-              )}
-            </div>
-            {polishedTranscript && (
-              <button onClick={downloadPolished} className="btn btn-download" style={{ marginTop: "1rem" }}>
-                Download .txt
+            <div className="sidebar-tabs">
+              <button
+                className={`sidebar-tab ${sidebarTab === "notes" ? "active" : ""}`}
+                onClick={() => setSidebarTab("notes")}
+              >
+                Notes
               </button>
+              <button
+                className={`sidebar-tab ${sidebarTab === "chat" ? "active" : ""}`}
+                onClick={() => setSidebarTab("chat")}
+              >
+                AI Chat {isAnalyzing && " (Analyzing...)"}
+              </button>
+            </div>
+
+            {sidebarTab === "notes" && (
+              <div className="slide-transcript-content">
+                <h3>Lecture Notes</h3>
+                {polishedTranscript ? (
+                  <pre className="transcript">{polishedTranscript}</pre>
+                ) : transcript ? (
+                  <pre className="transcript">{transcript}</pre>
+                ) : (
+                  <p className="placeholder">No transcript available</p>
+                )}
+                {polishedTranscript && (
+                  <button onClick={downloadPolished} className="btn btn-download" style={{ marginTop: "1rem" }}>
+                    Download .txt
+                  </button>
+                )}
+              </div>
+            )}
+
+            {sidebarTab === "chat" && (
+              <div className="chat-interface">
+                {!slideContext && !isAnalyzing ? (
+                  <div className="chat-empty">
+                    <p>Unlock AI Chat by analyzing these slides.</p>
+                    <button
+                      className="btn btn-parse"
+                      onClick={() => analyzeSlides(slidePages)}
+                      style={{ marginTop: "1rem", width: "100%" }}
+                    >
+                      ✨ Process Slides for AI
+                    </button>
+                    <p className="status-sm" style={{ marginTop: "1rem", animation: "none" }}>
+                      💡 This will send slide images to Gemini Vision.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="chat-messages">
+                      {chatMessages.length === 0 && isAnalyzing && (
+                        <div className="chat-empty">
+                          <p className="status-sm"> Analyzing visual content...</p>
+                        </div>
+                      )}
+                      {chatMessages.map((msg, i) => (
+                        <div key={i} className={`chat-msg ${msg.role}`}>
+                          <div className="msg-content">{msg.content}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="chat-input-area">
+                      <textarea
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        onKeyDown={handleChatParams}
+                        placeholder="Ask a question... (e.g. 'Go to slide 3')"
+                        disabled={isChatting || isAnalyzing}
+                      />
+                      <button onClick={handleChatSubmit} disabled={isChatting || isAnalyzing || !chatInput.trim()}>
+                        {isChatting ? "..." : "Send"}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             )}
           </aside>
         </div>
@@ -571,12 +737,16 @@ function App() {
                     </>
                   )}
                   {slidePages.length > 0 && (
-                    <button
-                      onClick={goToSlidePlayer}
-                      className="btn btn-slides"
-                    >
-                      📊 View Slides ({slidePages.length})
-                    </button>
+                    <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
+                      <button
+                        onClick={goToSlidePlayer}
+                        className="btn btn-slides"
+                        style={{ marginTop: 0 }}
+                      >
+                        📊 View Slides ({slidePages.length})
+                      </button>
+
+                    </div>
                   )}
                 </div>
               )}
@@ -705,12 +875,16 @@ function App() {
                     </>
                   )}
                   {slidePages.length > 0 && (
-                    <button
-                      onClick={goToSlidePlayer}
-                      className="btn btn-slides"
-                    >
-                      📊 View Slides ({slidePages.length})
-                    </button>
+                    <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
+                      <button
+                        onClick={goToSlidePlayer}
+                        className="btn btn-slides"
+                        style={{ marginTop: 0 }}
+                      >
+                        📊 View Slides ({slidePages.length})
+                      </button>
+
+                    </div>
                   )}
                 </div>
               )}
@@ -720,9 +894,17 @@ function App() {
           {/* Show slide player button even without transcript */}
           {!hasRawTranscript && slidePages.length > 0 && (
             <div className="result">
-              <button onClick={goToSlidePlayer} className="btn btn-slides">
-                📊 View Slides ({slidePages.length})
-              </button>
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <button
+                  onClick={goToSlidePlayer}
+                  className="btn btn-slides"
+                  style={{ marginTop: 0 }}
+                >
+                  📊 View Slides ({slidePages.length})
+                </button>
+
+
+              </div>
             </div>
           )}
 
