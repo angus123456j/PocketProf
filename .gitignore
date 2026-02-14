@@ -29,3 +29,6 @@ build/
 .cache/
 tmp/
 temp/
+
+# Node
+node_modules/

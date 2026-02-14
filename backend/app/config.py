@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     )
 
     SMALLEST_API_KEY: str
+    GEMINI_API_KEY: str
 
     APP_ENV: str = "development"
     PORT: int = 8000
