@@ -12,9 +12,15 @@ class Settings(BaseSettings):
     )
 
     SMALLEST_API_KEY: str
+    GOOGLE_API_KEY: str | None = None
+    SMALLEST_VOICE_ID: str | None = "sophia"
 
     APP_ENV: str = "development"
     PORT: int = 8000
+    LIGHTNING_API_URL: str = "https://waves-api.smallest.ai/api/v1/lightning-v3.1/stream"
+    LIGHTNING_MODEL: str = "lightning"
+    LIGHTNING_SAMPLE_RATE: int = 24000
+    LIGHTNING_OUTPUT_FORMAT: str = "pcm"
 
 
 def get_settings() -> Settings:
