@@ -37,3 +37,16 @@ class ParseResponse(BaseModel):
     """Response from parse endpoint."""
 
     formatted: str
+
+
+class AskRequest(BaseModel):
+    """Request body for ask (Q&A) endpoint."""
+
+    question: str
+    context: str | None = None
+
+
+class AskResponse(BaseModel):
+    """Response from ask endpoint."""
+
+    answer: str
