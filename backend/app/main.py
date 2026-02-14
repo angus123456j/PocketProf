@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings, setup_logging
-from app.routes import electron, health, hydra, lightning, pulse
+from app.routes import electron, health, hydra, lightning, parse, pulse
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -37,6 +37,7 @@ async def root() -> dict:
 
 app.include_router(health.router)
 app.include_router(pulse.router)
+app.include_router(parse.router)
 app.include_router(electron.router)
 app.include_router(lightning.router)
 app.include_router(hydra.router)

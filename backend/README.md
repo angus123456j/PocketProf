@@ -68,6 +68,9 @@ backend/
 |--------|------------------------|--------------------------|
 | GET    | `/health`              | Health check             |
 | POST   | `/pulse/stream`        | Pulse streaming pipeline |
+| POST   | `/pulse/transcribe`    | Batch transcription (upload audio, get text) |
+| POST   | `/pulse/transcribe-latex` | Transcribe audio and return LaTeX document |
+| POST   | `/parse`                 | Format raw transcript into polished lecture (Gemini) |
 | POST   | `/electron/format`     | Electron formatting      |
 | POST   | `/lightning/speak`     | Lightning TTS            |
 | POST   | `/hydra/qa`            | Hydra Q&A                |
