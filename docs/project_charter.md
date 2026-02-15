@@ -1,15 +1,19 @@
-# AI Voice Learning Engine  
-## Hackathon Project Charter
+# PocketProf — AI Voice Learning Engine
+## Project Charter
 
 ---
 
 ## 1. Project Overview
 
-This project is a modular AI voice learning system built using Smallest.ai APIs.
+PocketProf is an AI voice learning application that turns lectures (live recording or uploaded audio) into structured notes, spoken lesson playback, and voice-based Q&A.
 
-The system captures live speech, converts it into structured LaTeX lecture notes, generates spoken lecture playback, and enables real-time voice-based Q&A.
+The system uses:
+- **Pulse** (Smallest.ai) for speech-to-text (file upload and live streaming).
+- **Parse** (backend) to clean and structure transcripts into readable notes (e.g. Gemini-backed).
+- **Lightning** (Smallest.ai) for text-to-speech with selectable voices.
+- **Ask** (backend) for Q&A over the lesson and slides (e.g. Gemini + slide context).
 
-The goal is to build a real-time AI lecture transformation pipeline suitable for educational applications.
+The goal is to provide a single pipeline: **capture lecture → get notes → listen to AI "prof" → ask questions with your voice**.
 
 ---
 
@@ -17,167 +21,100 @@ The goal is to build a real-time AI lecture transformation pipeline suitable for
 
 ### Pipeline Overview
 
-User Speech  
-→ Pulse STT API  
-→ Electron API (LaTeX Formatting)  
-→ Lightning v3.1 TTS API (Lecture Playback)  
-→ Hydra API (Voice Q&A)  
-→ Frontend (React + TailwindCSS)
+**Input**
+- User uploads an MP3 **or** records live in the browser.
+
+**Transcription**
+- **Pulse STT**: `/pulse/transcribe` (file) or `/pulse/live` (WebSocket) → raw transcript.
+
+**Structuring**
+- **Parse**: `/parse` — cleans and structures the transcript into polished notes (sections, bullets). Output is plain text (downloadable as .txt). No LaTeX in the main user flow.
+
+**Optional: Slides**
+- User can upload a PDF. Backend **Ask** module analyzes slides (`/ask/analyze`) and can align script to slides (`/ask/align`) for the Slide Player.
+
+**Playback**
+- **Lightning TTS**: `/lightning/stream` — converts lesson text (and Q&A answers) to speech. Multiple voices (e.g. Sophia, Rachel, Jordan, Arjun) selectable on the frontend.
+
+**Q&A**
+- **Ask**: `/ask` — user asks a question (voice → Pulse transcribe → Ask with slide/lesson context → Gemini → answer). Answer is spoken via Lightning TTS.
+
+**Frontend**
+- React + Vite. Single-page app: Homepage (branding, character/voice picker, voice sample), Lab (upload/record, parse, download, PDF upload, View Slides), Slide Player (notes + slides + TTS playback + voice Ask).
 
 ---
 
-## 3. Team Roles and API Ownership
+## 3. Backend Structure
 
-### Angus
-
-**Responsibilities**
-- Pulse STT integration
-- Electron formatting pipeline
-- Speech-to-LaTeX conversion
-- Backend architecture setup
-
-**APIs Owned**
-- Pulse STT API
-- Electron API
-
-**Technical Scope**
-- Implement real-time streaming speech-to-text
-- Capture live lecture speech
-- Output raw transcript
-- Clean transcript and remove filler words
-- Structure content into:
-  - Sections
-  - Bullet points
-  - Definitions
-  - Theorems (if applicable)
-- Convert formatted output into LaTeX-ready structure
-
-Angus owns the ingestion and structuring layer of the system.
+| Route / Module | Purpose |
+|----------------|---------|
+| **Health** | `/health` — service status. |
+| **Pulse** | `/pulse/transcribe`, `/pulse/live` — STT (file and streaming). |
+| **Parse** | `/parse` — transcript → polished notes. |
+| **Lightning** | `/lightning/stream` — TTS for lesson and Q&A answers. |
+| **Ask** | `/ask`, `/ask/analyze`, `/ask/align`, `/ask/slides` — slide analysis, alignment, and Q&A with context. |
+| **Electron** | `/electron/format` — optional formatting (not used in main frontend flow). |
+| **Hydra** | `/hydra/qa` — optional Q&A (main Q&A flow uses Ask). |
 
 ---
 
-### Mo
+## 4. Functional Modules (As Built)
 
-**Responsibilities**
-- Lightning v3.1 TTS integration
-- Hydra integration (co-owned with Kevin)
+### Module 1 — Lecture capture and transcription
+- **Pulse STT**: Upload MP3 or live record → raw transcript.
+- **Deliverable**: Transcript visible in Lab; available for Parse.
 
-**APIs Owned**
-- Lightning v3.1 TTS API
-- Hydra API (shared with Kevin)
+### Module 2 — Transcript to notes
+- **Parse**: Raw transcript → polished, structured text.
+- **Deliverable**: Downloadable .txt; optional result overlay after parse.
 
-**Technical Scope**
-- Convert structured LaTeX notes into spoken lecture audio
-- Stream audio output
-- Enable language switching if time permits
-- Implement real-time speech-to-speech Q&A
-- Maintain conversational context
+### Module 3 — Lesson and answer playback
+- **Lightning TTS**: Text → speech with chosen voice.
+- **Deliverable**: Playback in Slide Player; voice sample on homepage for each character.
 
-Mo owns the output and interactive voice layer.
-
----
-
-### Kevin
-
-**Responsibilities**
-- Hydra integration (co-owned with Mo)
-- Session management
-- Conversational stability
-
-**APIs Owned**
-- Hydra API (shared with Mo)
-
-**Technical Scope**
-- Initialize and manage Hydra sessions
-- Handle conversational memory
-- Improve stability for live Q&A
-- Handle interruptions and edge cases
-
-Kevin owns the conversational robustness layer.
+### Module 4 — Slides and Q&A
+- **Ask**: PDF slides analyzed and used as context; user asks by voice; answer generated (e.g. Gemini) and spoken via Lightning.
+- **Deliverable**: View Slides + TTS + "Ask" flow in Slide Player.
 
 ---
 
-### Frontend
+## 5. MVP (As Shipped)
 
-**Stack**
-- React
-- TailwindCSS
+### Implemented
+- Upload MP3 or record live → transcript.
+- Parse → polished notes → download .txt.
+- Upload PDF slides → view in Slide Player.
+- Import notes → TTS playback with slide sync (where aligned).
+- Voice Ask: ask question → transcribe → Ask API → TTS response.
+- Homepage: branding, character/voice picker, voice sample.
+- Result overlay after parse so download is always accessible.
 
-**Ownership**
-- Implemented by any available team member after core API integrations
-
-**Responsibilities**
-- Microphone interface
-- Live transcript display
-- Structured LaTeX display panel
-- Audio playback controls
-- Voice Q&A interface
-- Clean and intuitive demo experience
-
-Frontend development is secondary to core API integration.
-
----
-
-## 4. Functional Modules
-
-### Module 1 — Live Lecture Capture  
-Owner: Angus  
-API: Pulse STT  
-Output: Raw transcript  
-
-### Module 2 — Structured LaTeX Notes  
-Owner: Angus  
-API: Electron  
-Output: Organized LaTeX lecture content  
-
-### Module 3 — Lecture Playback  
-Owner: Mo  
-API: Lightning v3.1  
-Output: Spoken lecture audio  
-
-### Module 4 — Real-Time Voice Q&A  
-Owners: Mo and Kevin  
-API: Hydra  
-Output: Conversational AI responses  
-
----
-
-## 5. MVP Definition
-
-### Required Features
-- Live speech-to-text transcription
-- Transcript-to-LaTeX formatting
-- LaTeX-to-speech playback
-- Functional voice-based Q&A
-- Clean frontend interface
-
-### Stretch Goals
-- Multi-language support
-- Session save functionality
-- UI polish and latency optimization
+### Optional / stretch
+- Multi-language support.
+- Session save.
+- Further latency and UI polish.
 
 ---
 
 ## 6. Technical Principles
 
-- Fully modular API architecture
-- Real-time streaming where supported
-- Clear separation of responsibilities
-- No monolithic model dependency
-- Maintain simplicity and avoid overengineering
+- Modular backend (routes per capability).
+- Real-time streaming where used (Pulse live, Lightning stream).
+- Clear separation: Pulse (STT), Parse (notes), Lightning (TTS), Ask (Q&A + slides).
+- Frontend: single App with distinct views (Home, Lab, Slide Player); no Tailwind (custom CSS).
 
 ---
 
 ## 7. Demo Flow
 
-1. User speaks → Pulse transcribes
-2. Electron structures transcript into LaTeX
-3. Lightning generates spoken lecture
-4. User asks a verbal question
-5. Hydra responds in real time
+1. **Homepage**: Pick a "prof" (voice), optionally play voice sample → "Get Started".
+2. **Lab**: Upload an MP3 or record live → see transcript → click **Parse** → see result overlay → **Download .txt**.
+3. **Lab**: Upload PDF slides → **View Slides**.
+4. **Slide Player**: Import or use notes → **Start TTS** → listen; optionally **Ask** with voice and hear the answer.
 
 ---
 
-## 8. Project Goal Statement
+## 8. Project Goal
 
-This project builds a modular AI voice learning engine powered by Smallest.ai APIs that transforms raw speech into structured knowledge and interactive audio experiences.
+PocketProf is a modular AI voice learning engine that turns raw lecture input (audio or live) into structured notes, spoken lesson playback, and voice-based Q&A, using Pulse, Parse, Lightning, and Ask as implemented in the current codebase.
+
