@@ -50,6 +50,7 @@ function App() {
   const [selectedVoiceId, setSelectedVoiceId] = useState("sophia");
   const [sessionFinished, setSessionFinished] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [showResultOverlay, setShowResultOverlay] = useState(false);
 
   const selectedCharacter = characters.find(c => c.voiceId === selectedVoiceId);
 
@@ -319,6 +320,7 @@ function App() {
       const data = await res.json();
       setPolishedTranscript(data.formatted || "");
       setParseStatus("done");
+      setShowResultOverlay(true);
     } catch (err) {
       setError(err.message || "Parsing failed");
       setParseStatus("idle");
@@ -859,6 +861,7 @@ function App() {
     setImportedNotesFileName("");
     setSessionFinished(false);
     setShowExitConfirm(false);
+    setShowResultOverlay(false);
     if (lightningAudioRef.current) {
       lightningAudioRef.current.pause();
       lightningAudioRef.current = null;
@@ -902,7 +905,7 @@ function App() {
         {/* Header — brand only */}
         <header className="home-header">
           <div className="home-header-brand">
-            <span className="home-logo-icon">P</span>
+            <img src="/logo.png" alt="" className="home-logo-img" />
             <span className="home-brand">POCKETPROF</span>
           </div>
         </header>
@@ -928,16 +931,23 @@ function App() {
             </div>
           </section>
 
-          {/* Sponsor row — bottom, static, no scroll */}
+          {/* Sponsor row — infinite scroll ticker */}
           <section className="home-partners">
-            <div className="home-sponsor-row">
-              <span className="ticker-item">SMALLEST.AI</span>
-              <span className="ticker-dot" />
-              <span className="ticker-item">GOOGLE GEMINI</span>
-              <span className="ticker-dot" />
-              <span className="ticker-item">LIGHTNING</span>
-              <span className="ticker-dot" />
-              <span className="ticker-item">PULSE</span>
+            <div className="home-sponsor-wrap">
+              <div className="home-sponsor-track" aria-hidden="true">
+                {[...Array(3)].map((_, group) => (
+                  <div key={group} className="home-sponsor-row">
+                    <span className="ticker-item">SMALLEST.AI</span>
+                    <span className="ticker-dot" />
+                    <span className="ticker-item">LIGHTNING</span>
+                    <span className="ticker-dot" />
+                    <span className="ticker-item">PULSE</span>
+                    <span className="ticker-dot" />
+                    <span className="ticker-item">GOOGLE GEMINI</span>
+                    <span className="ticker-dot" />
+                  </div>
+                ))}
+              </div>
             </div>
           </section>
         </div>
@@ -1320,6 +1330,25 @@ function App() {
               <div className="exit-modal-actions">
                 <button className="btn btn-confirm-exit" onClick={confirmExit}>Yes, Exit</button>
                 <button className="btn btn-cancel-exit" onClick={cancelExit}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        )}
+        {showResultOverlay && parseStatus === "done" && polishedTranscript && (
+          <div
+            className="result-overlay"
+            onClick={() => setShowResultOverlay(false)}
+            role="dialog"
+            aria-label="Parse result"
+          >
+            <div className="result-overlay-card" onClick={e => e.stopPropagation()}>
+              <h3 className="result-overlay-title">Results</h3>
+              <div className="result-overlay-scroll">
+                <pre className="result-overlay-transcript">{polishedTranscript}</pre>
+              </div>
+              <div className="result-overlay-actions">
+                <button onClick={downloadPolished} className="btn btn-download">Download .txt</button>
+                <button onClick={() => setShowResultOverlay(false)} className="btn result-overlay-close">Close</button>
               </div>
             </div>
           </div>
