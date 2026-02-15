@@ -1,6 +1,7 @@
 import { useRef, useState, useCallback } from "react";
 import * as pdfjsLib from "pdfjs-dist";
 import "pdfjs-dist/build/pdf.worker.min.mjs";
+import CharacterScene from "./components/CharacterScene";
 import "./App.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "/api";
@@ -878,36 +879,32 @@ function App() {
             <div className="home-hero-content">
               <h1 className="home-hero-title">The AI Learning Partner</h1>
               <p className="home-hero-sub">
-                Turn messy recordings and slide decks into clean, structured notes. Ask questions in plain English—get answers with full context of your course.
+                Turn messy recordings and slide decks into clean, structured notes. Ask questions, get answers with full context of your course.
               </p>
               <p className="home-hero-detail">
                 Upload an MP3 or record live. Our AI extracts key concepts, organizes your content, and lets you study smarter—not harder.
               </p>
               <button className="home-enter-btn" onClick={() => setPage("tool")}>
-                Try For Free →
+                Get Started →
               </button>
-              <p className="home-cta-small">No credit card required · 14-day free trial</p>
+              <p className="home-cta-small">Students and educators use PocketProf to turn lecture chaos into clarity.</p>
             </div>
             <div className="home-hero-right">
-              <img src="/frontendimg.png" alt="" className="home-hero-img" />
+              <CharacterScene />
             </div>
           </section>
 
           {/* Sponsor row — bottom, static, no scroll */}
           <section className="home-partners">
-          <p className="home-partners-intro">
-            Students and educators use PocketProf to turn lecture chaos into clarity.{" "}
-            <span className="home-partners-cta" onClick={() => setPage("tool")} role="button" tabIndex={0}>Enter the Lab and see how it works →</span>
-          </p>
-          <div className="home-sponsor-row">
-            <span className="ticker-item">SMALLEST.AI</span>
-            <span className="ticker-dot" />
-            <span className="ticker-item">GOOGLE GEMINI</span>
-            <span className="ticker-dot" />
-            <span className="ticker-item">LIGHTNING</span>
-            <span className="ticker-dot" />
-            <span className="ticker-item">PULSE</span>
-          </div>
+            <div className="home-sponsor-row">
+              <span className="ticker-item">SMALLEST.AI</span>
+              <span className="ticker-dot" />
+              <span className="ticker-item">GOOGLE GEMINI</span>
+              <span className="ticker-dot" />
+              <span className="ticker-item">LIGHTNING</span>
+              <span className="ticker-dot" />
+              <span className="ticker-item">PULSE</span>
+            </div>
           </section>
         </div>
 
@@ -928,22 +925,19 @@ function App() {
   if (showSlidePlayer) {
     return (
       <div className="lab">
-        <header className="lab-header">
-          <button type="button" className="lab-brand" onClick={goHome} aria-label="Home">
-            POCKETPROF
-          </button>
-          <button type="button" className="btn-back" onClick={goBackFromSlides}>
-            ← Back
-          </button>
-        </header>
         <div className="slide-player-layout">
           {/* Slide viewer */}
           <div className="slide-player">
             <div className="slide-player-header">
-              <h2>Lecture Slides</h2>
-              <span className="slide-counter">
-                Slide {currentSlide + 1} of {slidePages.length}
-              </span>
+              <div className="header-left">
+                <h2>Lecture Slides</h2>
+                <span className="slide-counter">
+                  Slide {currentSlide + 1} of {slidePages.length}
+                </span>
+              </div>
+              <button type="button" className="btn-back" onClick={goBackFromSlides}>
+                ← Back
+              </button>
             </div>
 
             <div className="slide-display">
@@ -1115,224 +1109,127 @@ function App() {
   // ── Main View (Lab) ──────────────────────────────────────────────
   return (
     <div className="lab">
-      <header className="lab-header">
-        <button
-          type="button"
-          className="lab-brand"
-          onClick={goHome}
-          aria-label="Home"
-        >
-          POCKETPROF
-        </button>
-        <span className="lab-page-title">THE LAB</span>
-      </header>
       <div className="app-body">
-        <main className="main lab-cards">
-          <h1 className="lab-heading">The Lab</h1>
-          <p className="subtitle">Choose how you want to get started</p>
+        <main className="main lab-cards no-scroll">
+          <div className="lab-page-header">
+            <h1 className="lab-heading">Setup PocketProf</h1>
+            <button type="button" className="btn-back" onClick={goHome}>
+              ← Back
+            </button>
+          </div>
+          <p className="subtitle">Import your lecture information</p>
 
-          {/* Section 1: Import audio or live record audio */}
-          <div className="lab-section">
-            <h2 className="lab-section-title">Section 1 — Import audio or live record audio</h2>
+          <div className="lab-sections-horizontal">
+            {/* Section 1: Import audio or live record audio */}
+            <div className="lab-section">
+              <h2 className="lab-section-title">Section 1 — Audio</h2>
 
-            <section className="lab-card">
-              <div className="lab-card-header">
-                <h3 className="lab-card-title">Upload MP3</h3>
-                <p className="lab-card-desc">Upload an audio file to transcribe it instantly.</p>
-              </div>
-              <div
-                className={`lab-card-body upload-zone ${uploadStatus === "processing" ? "processing" : ""}`}
-                onClick={() =>
-                  uploadStatus !== "processing" && fileInputRef.current?.click()
-                }
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  const file = e.dataTransfer.files?.[0];
-                  if (
-                    file &&
-                    file.type.startsWith("audio/") &&
-                    uploadStatus !== "processing"
-                  ) {
-                    handleFileUpload(file);
-                  }
-                }}
-              >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="audio/mpeg,audio/mp3,.mp3,audio/*"
-                  onChange={handleFileUpload}
-                  className="file-input"
-                />
-                <div className="upload-zone-icon" aria-hidden="true" />
-                <span className="upload-zone-text">
-                  {uploadStatus === "processing"
-                    ? "Transcribing…"
-                    : "Drop MP3 here or click to select"}
-                </span>
-              </div>
-            </section>
-
-            <section className="lab-card">
-              <div className="lab-card-header">
-                <h3 className="lab-card-title">Record & Finish</h3>
-                <p className="lab-card-desc">Record live and get a transcript when you’re done.</p>
-              </div>
-              <div className="lab-card-body lab-card-actions">
-                {status === "processing" && (
-                  <p className="status">Transcribing…</p>
-                )}
-                <div className="controls">
-                  <button
-                    onClick={startRecording}
-                    disabled={status === "recording"}
-                    className="btn btn-record"
-                  >
-                    Record
-                  </button>
-                  <button
-                    onClick={stopAndTranscribe}
-                    disabled={status !== "recording"}
-                    className="btn btn-finish"
-                  >
-                    Finish
-                  </button>
-                </div>
-              </div>
-            </section>
-
-            {/* Results for Section 1 (audio only: transcript, Parse, Download) */}
-            {hasRawTranscript && (
-              <section className="lab-card lab-card-results">
+              <section className="lab-card horizontal-split">
                 <div className="lab-card-header">
-                  <h3 className="lab-card-title">Results</h3>
-                  <p className="lab-card-desc">Your transcript is ready. Parse it for polished notes.</p>
+                  <h3 className="lab-card-title">Upload MP3</h3>
+                  <p className="lab-card-desc">Transcribe instantly.</p>
                 </div>
-                <div className="lab-card-body">
-                  <div className="result">
-                    {parseStatus === "idle" && (
-                      <>
-                        <p className="status">Transcript ready</p>
-                        <button onClick={handleParse} className="btn btn-parse">
-                          Parse
-                        </button>
-                      </>
-                    )}
-                    {parseStatus === "parsing" && (
-                      <p className="status">Parsing…</p>
-                    )}
-                    {parseStatus === "done" && (
-                      <>
-                        <pre className="transcript">{polishedTranscript}</pre>
-                        <button
-                          onClick={downloadPolished}
-                          className="btn btn-download"
-                        >
-                          Download .txt
-                        </button>
-                      </>
-                    )}
+                <div
+                  className={`lab-card-body upload-zone ${uploadStatus === "processing" ? "processing" : ""}`}
+                  onClick={() =>
+                    uploadStatus !== "processing" && fileInputRef.current?.click()
+                  }
+                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const file = e.dataTransfer.files?.[0];
+                    if (file && file.type.startsWith("audio/") && uploadStatus !== "processing") handleFileUpload(file);
+                  }}
+                >
+                  <input ref={fileInputRef} type="file" accept="audio/*" onChange={handleFileUpload} className="file-input" />
+                  <div className="upload-zone-icon" aria-hidden="true" />
+                  <span className="upload-zone-text">
+                    {uploadStatus === "processing" ? "Transcribing…" : "Drop MP3 here or click"}
+                  </span>
+                </div>
+              </section>
+
+              <section className="lab-card">
+                <div className="lab-card-header">
+                  <h3 className="lab-card-title">Record Live</h3>
+                  <p className="lab-card-desc">Get a transcript when done.</p>
+                </div>
+                <div className="lab-card-body lab-card-actions">
+                  <div className="controls">
+                    <button onClick={startRecording} disabled={status === "recording"} className="btn btn-record">Record</button>
+                    <button onClick={stopAndTranscribe} disabled={status !== "recording"} className="btn btn-finish">Finish</button>
                   </div>
                 </div>
               </section>
-            )}
-          </div>
 
-          {/* Section 2: Add PDF slides / textbook / documents */}
-          <div className="lab-section">
-            <h2 className="lab-section-title">Section 2 — Add PDF slides / textbook / documents</h2>
+              {hasRawTranscript && (
+                <section className="lab-card lab-card-results">
+                  <div className="lab-card-header">
+                    <h3 className="lab-card-title">Results</h3>
+                  </div>
+                  <div className="lab-card-body">
+                    <div className="result">
+                      {parseStatus === "idle" && <button onClick={handleParse} className="btn btn-parse">Parse</button>}
+                      {parseStatus === "parsing" && <p className="status">Parsing…</p>}
+                      {parseStatus === "done" && (
+                        <>
+                          <pre className="transcript">{polishedTranscript}</pre>
+                          <button onClick={downloadPolished} className="btn btn-download">Download .txt</button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </section>
+              )}
+            </div>
 
-            <section className="lab-card">
-              <div className="lab-card-header">
-                <h3 className="lab-card-title">PDF Slides</h3>
-                <p className="lab-card-desc">Drop lecture slides or documents to view them with your transcript.</p>
-              </div>
-              <div
-                className={`lab-card-body upload-zone slide-upload-zone ${slideProcessing ? "processing" : ""}`}
-                onClick={() =>
-                  !slideProcessing && slideInputRef.current?.click()
-                }
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  const file = e.dataTransfer.files?.[0];
-                  if (
-                    file &&
-                    file.type === "application/pdf" &&
-                    !slideProcessing
-                  ) {
-                    handleSlideUpload(file);
-                  }
-                }}
-              >
-                <input
-                  ref={slideInputRef}
-                  type="file"
-                  accept="application/pdf,.pdf"
-                  onChange={handleSlideUpload}
-                  className="file-input"
-                />
-                <div className="upload-zone-icon" aria-hidden="true" />
-                <span className="upload-zone-text">
-                  {slideProcessing
-                    ? "Processing PDF…"
-                    : slideFile
-                      ? `✓ ${slideFile.name} (${slidePages.length} slides)`
-                      : "Drop PDF slides here or click to select"}
-                </span>
-              </div>
-              <div className="lab-card-body" style={{ paddingTop: 0 }}>
-                <button
-                  type="button"
-                  className="lab-add-slides-btn"
-                  onClick={() => !slideProcessing && slideInputRef.current?.click()}
-                  disabled={slideProcessing}
-                >
-                  Add PowerPoint / PDF
-                </button>
-              </div>
-            </section>
+            {/* Section 2: Add PDF slides */}
+            <div className="lab-section">
+              <h2 className="lab-section-title">Section 2 — Slides</h2>
 
-            {/* Results for Section 2 (PDF/slides only: View Slides) */}
-            {slidePages.length > 0 && (
-              <section className="lab-card lab-card-results">
+              <section className="lab-card horizontal-split">
                 <div className="lab-card-header">
-                  <h3 className="lab-card-title">Slides ready</h3>
-                  <p className="lab-card-desc">View your uploaded slides with your transcript.</p>
+                  <h3 className="lab-card-title">PDF Slides</h3>
+                  <p className="lab-card-desc">Upload to view with transcript.</p>
                 </div>
-                <div className="lab-card-body">
-                  <button
-                    onClick={goToSlidePlayer}
-                    className="btn btn-slides"
-                  >
-                    View Slides ({slidePages.length})
-                  </button>
+                <div
+                  className={`lab-card-body upload-zone slide-upload-zone ${slideProcessing ? "processing" : ""}`}
+                  onClick={() => !slideProcessing && slideInputRef.current?.click()}
+                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const file = e.dataTransfer.files?.[0];
+                    if (file && file.type === "application/pdf" && !slideProcessing) handleSlideUpload(file);
+                  }}
+                >
+                  <input ref={slideInputRef} type="file" accept="application/pdf" onChange={handleSlideUpload} className="file-input" />
+                  <div className="upload-zone-icon" aria-hidden="true" />
+                  <span className="upload-zone-text">
+                    {slideProcessing ? "Processing PDF…" : slideFile ? `✓ ${slideFile.name}` : "Drop PDF here or click"}
+                  </span>
                 </div>
               </section>
-            )}
-          </div>
 
+              {slidePages.length > 0 && (
+                <section className="lab-card lab-card-results">
+                  <div className="lab-card-header">
+                    <h3 className="lab-card-title">Slides ready</h3>
+                  </div>
+                  <div className="lab-card-body">
+                    <button onClick={goToSlidePlayer} className="btn btn-slides">View Slides ({slidePages.length})</button>
+                  </div>
+                </section>
+              )}
+            </div>
+          </div>
           {error && <p className="error">{error}</p>}
         </main>
-
         {status === "recording" && (
           <aside className="live-panel">
             <h3>Live transcript</h3>
             <div className="live-content">
-              {liveLines.map((line, i) => (
-                <p key={i}>{line}</p>
-              ))}
+              {liveLines.map((line, i) => <p key={i}>{line}</p>)}
               {livePartial && <p className="partial">{livePartial}</p>}
-              {!liveLines.length && !livePartial && (
-                <p className="placeholder">Speak…</p>
-              )}
             </div>
           </aside>
         )}
