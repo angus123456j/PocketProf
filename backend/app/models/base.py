@@ -50,3 +50,29 @@ class AskResponse(BaseModel):
     """Response from ask endpoint."""
 
     answer: str
+
+
+class SlideContext(BaseModel):
+    """Context for a single slide."""
+    slide_number: int
+    description: str
+    text_content: str
+
+
+class SlideAnalysisRequest(BaseModel):
+    """Request to analyze slides."""
+    images: list[str]  # Base64 encoded images
+
+
+class SlideChatRequest(BaseModel):
+    """Request to chat with slides."""
+    query: str
+    context: list[SlideContext]
+    current_slide: int
+    history: list[dict] = []
+
+
+class SlideChatResponse(BaseModel):
+    """Response from slide chat."""
+    answer: str
+    suggested_slide: int | None = None

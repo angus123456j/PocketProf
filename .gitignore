@@ -32,3 +32,6 @@ temp/
 
 # Node
 node_modules/
+
+# Test
+test/

@@ -34,6 +34,8 @@ function App() {
   const [slideProcessing, setSlideProcessing] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [showSlidePlayer, setShowSlidePlayer] = useState(false);
+  const [slideContext, setSlideContext] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // Imported notes (downloaded .txt) for TTS in slide player
   const [importedNotesText, setImportedNotesText] = useState("");
@@ -63,9 +65,35 @@ function App() {
   const responseAudioRef = useRef(null);
 
   // ── PDF processing ───────────────────────────────────────────────
+  const analyzeSlides = async (images) => {
+    if (isAnalyzing || slideContext) return;
+    setIsAnalyzing(true);
+    try {
+      const res = await fetch(`${API_BASE}/ask/analyze`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ images }),
+      });
+
+      if (res.status === 429) {
+        throw new Error("Rate limit reached. Please wait a minute and try again.");
+      }
+
+      if (!res.ok) throw new Error("Failed to analyze slides");
+      const data = await res.json();
+      setSlideContext(data);
+    } catch (err) {
+      console.error(err);
+      setError("Slide analysis failed: " + err.message);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   const processPdf = useCallback(async (file) => {
     setSlideProcessing(true);
     setError("");
+    setSlideContext(null); // Reset context on new file
     try {
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -73,18 +101,25 @@ function App() {
 
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
-        const scale = 2;
+        // Use lower scale for analysis to save tokens/bandwidth, or keep high for display?
+        // Let's use 1.0 for display to ensure good quality, but maybe downscale for analysis if needed.
+        // For now, consistent usage.
+        const scale = 1.5;
         const viewport = page.getViewport({ scale });
         const canvas = document.createElement("canvas");
         canvas.width = viewport.width;
         canvas.height = viewport.height;
         const ctx = canvas.getContext("2d");
         await page.render({ canvasContext: ctx, viewport }).promise;
-        pages.push(canvas.toDataURL("image/png"));
+        pages.push(canvas.toDataURL("image/jpeg", 0.8));
       }
 
       setSlidePages(pages);
       setSlideFile(file);
+      // Automatically start analysis after processing? Or wait for first question?
+      // Let's wait for first question to save API calls, or trigger it now?
+      // The prompt says "run analyze slides if we haven't already" when clicking ask.
+      // So we'll do it lazily in submitAsk.
     } catch (err) {
       setError("Failed to process PDF: " + (err.message || "Unknown error"));
       setSlideFile(null);
@@ -458,7 +493,7 @@ function App() {
   const submitAsk = useCallback(async (questionOverride) => {
     const question = (questionOverride != null ? questionOverride : askQuestionText).trim();
     // #region agent log
-    fetch('http://127.0.0.1:7245/ingest/3e59e22c-7a6c-4ac8-9b5c-daff4baedb49',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.jsx:submitAsk',message:'submitAsk entry',data:{hasOverride:questionOverride!=null,overridePreview:questionOverride!=null?String(questionOverride).slice(0,80):null,resolvedLen:question.length,resolvedPreview:question.slice(0,80),isEmpty:!question},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
+    fetch('http://127.0.0.1:7245/ingest/3e59e22c-7a6c-4ac8-9b5c-daff4baedb49', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'App.jsx:submitAsk', message: 'submitAsk entry', data: { hasOverride: questionOverride != null, overridePreview: questionOverride != null ? String(questionOverride).slice(0, 80) : null, resolvedLen: question.length, resolvedPreview: question.slice(0, 80), isEmpty: !question }, timestamp: Date.now(), hypothesisId: 'H3' }) }).catch(() => { });
     // #endregion
     console.log("[Ask flow] submitAsk called", { hasOverride: questionOverride != null, questionLength: question.length, questionPreview: question.slice(0, 80) });
     if (!question) {
@@ -467,28 +502,109 @@ function App() {
     }
     setError("");
     setAskStatus("loading");
-    try {
-      console.log("[Ask flow] POST /ask with question…");
-      const res = await fetch(`${API_BASE}/ask`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          question,
-          context: importedNotesText || undefined,
-        }),
-      });
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(errText || res.statusText);
+
+    // Check if we have slides to analyze
+    let currentContext = slideContext;
+    if (slidePages.length > 0 && !currentContext) {
+      if (isAnalyzing) {
+        // Already analyzing, wait? For simplicity, block or show message.
+        // Ideally we wait.
+        console.log("Waiting for slide analysis...");
+      } else {
+        console.log("Triggering lazy slide analysis...");
+        // Can't easily await analyzeSlides inside useCallback without making it self-contained or dependency.
+        // We'll reimplement the fetch here to ensure we have the data *now*.
+        // Or better, define analyzeSlides outside or use a ref?
+        // Let's just do the fetch here for simplicity.
+        try {
+          // Reuse the logic
+          const res = await fetch(`${API_BASE}/ask/analyze`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ images: slidePages }),
+          });
+          if (!res.ok) throw new Error("Failed to analyze slides on demand");
+          currentContext = await res.json();
+          setSlideContext(currentContext);
+        } catch (e) {
+          console.error("Lazy analysis failed", e);
+          setError("Failed to analyze slides for context.");
+          setAskStatus("idle");
+          return;
+        }
       }
-      const data = await res.json();
-      const answer = data?.answer || "";
-      console.log("[Ask flow] /ask response:", { ok: res.ok, answerLength: answer.length, answerPreview: answer.slice(0, 80) });
+    }
+
+    try {
+      let answer = "";
+      let suggestedSlide = null;
+
+      if (currentContext) {
+        console.log("[Ask flow] POST /ask/slides with context…");
+        const res = await fetch(`${API_BASE}/ask/slides`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            query: question,
+            context: currentContext,
+            current_slide: currentSlide,
+            history: [] // We could pass history if we maintained it
+          }),
+        });
+        if (!res.ok) throw new Error("Slide chat failed");
+        const data = await res.json();
+        answer = data.answer;
+        suggestedSlide = data.suggested_slide;
+      } else {
+        // Fallback to original /ask if no slides
+        console.log("[Ask flow] POST /ask with question…");
+        const res = await fetch(`${API_BASE}/ask`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            question,
+            context: importedNotesText || undefined,
+          }),
+        });
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(errText || res.statusText);
+        }
+        const data = await res.json();
+        answer = data?.answer || "";
+      }
+
+      console.log("[Ask flow] Response:", { answerLength: answer.length, suggestedSlide });
+
       if (!answer) {
-        console.warn("[Ask flow] /ask returned empty answer");
+        console.warn("[Ask flow] returned empty answer");
         setAskStatus("idle");
         return;
       }
+
+      // Slide Switching Logic
+      const originalSlide = currentSlide;
+      if (suggestedSlide !== null && suggestedSlide !== undefined) {
+        // Gemini assumes 1-based usually in text, but if we return int from service it matches array index?
+        // Service returns exact int. slide_service.py: "suggested_slide": 5
+        // Prompt says "Return JSON: ... suggested_slide: 5".
+        // And "CURRENT SLIDE: {current_slide + 1}".
+        // If Gemini returns 5 (meaning slide 5), that is index 4. 
+        // Let's assume Gemini follows the "Slide X" numbering which is 1-based.
+        // Wait, the prompt says "Always return one slide number".
+        // If I say "Slide 3", I expect 3?
+        // Let's assume 1-based from LLM -> 0-based index.
+        const targetIndex = suggestedSlide - 1;
+        if (targetIndex >= 0 && targetIndex < slidePages.length && targetIndex !== currentSlide) {
+          console.log(`Switching to slide ${targetIndex + 1} for answer...`);
+          setCurrentSlide(targetIndex);
+          // show slide player if not already?
+          if (!showSlidePlayer && slidePages.length > 0) {
+            setShowSlidePlayer(true);
+          }
+        }
+      }
+
       console.log("[Ask flow] POST /lightning/stream for TTS…");
       const ttsRes = await fetch(`${API_BASE}/lightning/stream`, {
         method: "POST",
@@ -501,36 +617,51 @@ function App() {
       const url = URL.createObjectURL(wavBlob);
       const responseAudio = new Audio(url);
       responseAudioRef.current = responseAudio;
+
       responseAudio.onended = () => {
         URL.revokeObjectURL(url);
         setAskStatus("idle");
         setAskInputVisible(false);
         setAskQuestionText("");
+
+        // Revert slide
+        if (suggestedSlide !== null && suggestedSlide !== undefined) {
+          console.log(`Reverting to original slide ${originalSlide + 1}...`);
+          setCurrentSlide(originalSlide);
+        }
+
         const lessonAudio = lightningAudioRef.current;
         if (lessonAudio && lessonAudio.paused) {
           lessonAudio.play();
           setLightningPaused(false);
         }
       };
+
       responseAudio.onerror = () => {
         URL.revokeObjectURL(url);
         setAskStatus("idle");
         setError("Answer playback failed");
+        // Revert slide on error too
+        if (suggestedSlide !== null && suggestedSlide !== undefined) {
+          setCurrentSlide(originalSlide);
+        }
       };
+
       await responseAudio.play();
       setAskStatus("speaking");
       console.log("[Ask flow] Answer audio playing; will resume lesson when done.");
+
     } catch (err) {
       console.error("[Ask flow] submitAsk failed:", err);
       setError(err?.message || "Ask failed");
       setAskStatus("idle");
     }
-  }, [askQuestionText, importedNotesText]);
+  }, [askQuestionText, importedNotesText, slideContext, slidePages, isAnalyzing, currentSlide]);
 
   const stopAskRecording = useCallback(() => {
     const recorder = askRecorderRef.current;
     // #region agent log
-    fetch('http://127.0.0.1:7245/ingest/3e59e22c-7a6c-4ac8-9b5c-daff4baedb49',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.jsx:stopAskRecording:entry',message:'stopAskRecording entry',data:{hasRecorder:!!recorder,recorderState:recorder?.state??null,chunksLengthNow:askChunksRef.current?.length??0},timestamp:Date.now(),hypothesisId:'H1,H5'})}).catch(()=>{});
+    fetch('http://127.0.0.1:7245/ingest/3e59e22c-7a6c-4ac8-9b5c-daff4baedb49', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'App.jsx:stopAskRecording:entry', message: 'stopAskRecording entry', data: { hasRecorder: !!recorder, recorderState: recorder?.state ?? null, chunksLengthNow: askChunksRef.current?.length ?? 0 }, timestamp: Date.now(), hypothesisId: 'H1,H5' }) }).catch(() => { });
     // #endregion
     console.log("[Ask flow] Send question clicked", { hasRecorder: !!recorder, recorderState: recorder?.state });
     if (!recorder || recorder.state === "inactive") {
@@ -548,7 +679,7 @@ function App() {
       const blobSize = chunks.length ? new Blob(chunks, { type: "audio/webm" }).size : 0;
       console.log("[Ask flow] onstop: chunks =", chunks.length, "blob size =", blobSize, "bytes");
       // #region agent log
-      fetch('http://127.0.0.1:7245/ingest/3e59e22c-7a6c-4ac8-9b5c-daff4baedb49',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.jsx:stopAskRecording:afterStop',message:'chunks after stop',data:{chunksLength:chunks.length,blobSize:chunks.length?new Blob(chunks,{type:'audio/webm'}).size:0},timestamp:Date.now(),hypothesisId:'H1,H4'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7245/ingest/3e59e22c-7a6c-4ac8-9b5c-daff4baedb49', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'App.jsx:stopAskRecording:afterStop', message: 'chunks after stop', data: { chunksLength: chunks.length, blobSize: chunks.length ? new Blob(chunks, { type: 'audio/webm' }).size : 0 }, timestamp: Date.now(), hypothesisId: 'H1,H4' }) }).catch(() => { });
       // #endregion
       if (!chunks.length) {
         console.error("[Ask flow] No chunks recorded — cannot send to Pulse");
@@ -570,7 +701,7 @@ function App() {
         const transcription = data ? (data.transcription || "").trim() : "";
         console.log("[Ask flow] Pulse transcribe response:", { status: res.status, ok: res.ok, transcriptionLength: transcription.length, transcriptionPreview: transcription.slice(0, 80) });
         // #region agent log
-        fetch('http://127.0.0.1:7245/ingest/3e59e22c-7a6c-4ac8-9b5c-daff4baedb49',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.jsx:stopAskRecording:afterPulse',message:'after Pulse transcribe',data:{resOk:res.ok,status:res.status,transcriptionLen:transcription.length,transcriptionPreview:transcription.slice(0,80),dataKeys:data?Object.keys(data):[]},timestamp:Date.now(),hypothesisId:'H2,H4'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7245/ingest/3e59e22c-7a6c-4ac8-9b5c-daff4baedb49', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'App.jsx:stopAskRecording:afterPulse', message: 'after Pulse transcribe', data: { resOk: res.ok, status: res.status, transcriptionLen: transcription.length, transcriptionPreview: transcription.slice(0, 80), dataKeys: data ? Object.keys(data) : [] }, timestamp: Date.now(), hypothesisId: 'H2,H4' }) }).catch(() => { });
         // #endregion
         if (!res.ok) {
           const text = await res.text();
@@ -630,9 +761,7 @@ function App() {
     setLivePartial("");
     setError("");
     setUploadStatus("idle");
-    setSlideFile(null);
-    setSlidePages([]);
-    setSlideProcessing(false);
+    setSlideContext(null);
     setCurrentSlide(0);
     setShowSlidePlayer(false);
   };
@@ -937,70 +1066,70 @@ function App() {
             <section className="lab-card">
               <div className="lab-card-header">
                 <h3 className="lab-card-title">Upload MP3</h3>
-              <p className="lab-card-desc">Upload an audio file to transcribe it instantly.</p>
-            </div>
-            <div
-              className={`lab-card-body upload-zone ${uploadStatus === "processing" ? "processing" : ""}`}
-              onClick={() =>
-                uploadStatus !== "processing" && fileInputRef.current?.click()
-              }
-              onDragOver={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                const file = e.dataTransfer.files?.[0];
-                if (
-                  file &&
-                  file.type.startsWith("audio/") &&
-                  uploadStatus !== "processing"
-                ) {
-                  handleFileUpload(file);
+                <p className="lab-card-desc">Upload an audio file to transcribe it instantly.</p>
+              </div>
+              <div
+                className={`lab-card-body upload-zone ${uploadStatus === "processing" ? "processing" : ""}`}
+                onClick={() =>
+                  uploadStatus !== "processing" && fileInputRef.current?.click()
                 }
-              }}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="audio/mpeg,audio/mp3,.mp3,audio/*"
-                onChange={handleFileUpload}
-                className="file-input"
-              />
-              <div className="upload-zone-icon" aria-hidden="true" />
-              <span className="upload-zone-text">
-                {uploadStatus === "processing"
-                  ? "Transcribing…"
-                  : "Drop MP3 here or click to select"}
-              </span>
-            </div>
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const file = e.dataTransfer.files?.[0];
+                  if (
+                    file &&
+                    file.type.startsWith("audio/") &&
+                    uploadStatus !== "processing"
+                  ) {
+                    handleFileUpload(file);
+                  }
+                }}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="audio/mpeg,audio/mp3,.mp3,audio/*"
+                  onChange={handleFileUpload}
+                  className="file-input"
+                />
+                <div className="upload-zone-icon" aria-hidden="true" />
+                <span className="upload-zone-text">
+                  {uploadStatus === "processing"
+                    ? "Transcribing…"
+                    : "Drop MP3 here or click to select"}
+                </span>
+              </div>
             </section>
 
             <section className="lab-card">
               <div className="lab-card-header">
                 <h3 className="lab-card-title">Record & Finish</h3>
-              <p className="lab-card-desc">Record live and get a transcript when you’re done.</p>
-            </div>
-            <div className="lab-card-body lab-card-actions">
-              {status === "processing" && (
-                <p className="status">Transcribing…</p>
-              )}
-              <div className="controls">
-                <button
-                  onClick={startRecording}
-                  disabled={status === "recording"}
-                  className="btn btn-record"
-                >
-                  Record
-                </button>
-                <button
-                  onClick={stopAndTranscribe}
-                  disabled={status !== "recording"}
-                  className="btn btn-finish"
-                >
-                  Finish
-                </button>
+                <p className="lab-card-desc">Record live and get a transcript when you’re done.</p>
               </div>
+              <div className="lab-card-body lab-card-actions">
+                {status === "processing" && (
+                  <p className="status">Transcribing…</p>
+                )}
+                <div className="controls">
+                  <button
+                    onClick={startRecording}
+                    disabled={status === "recording"}
+                    className="btn btn-record"
+                  >
+                    Record
+                  </button>
+                  <button
+                    onClick={stopAndTranscribe}
+                    disabled={status !== "recording"}
+                    className="btn btn-finish"
+                  >
+                    Finish
+                  </button>
+                </div>
               </div>
             </section>
 
