@@ -217,3 +217,76 @@ async def chat_with_slides(query: str, context: list[SlideContext], current_slid
     except Exception as e:
         print(f"Error parsing chat response: {e}")
         return {"answer": "I'm sorry, I couldn't process that request.", "suggested_slide": None}
+
+
+async def align_script_with_slides(script: str, context: list[SlideContext]) -> list[dict]:
+    """
+    Aligns a lesson script with the provided slide context.
+    Returns a list of segments, each with a corresponding slide number.
+    """
+    settings = get_settings()
+
+    # Construct context string
+    context_str = "\n".join([
+        f"--- Slide {s.slide_number} ---\n[Visuals]: {s.description}\n[Text]: {s.text_content}"
+        for s in context
+    ])
+
+    system_instruction = f"""
+    You are an expert educational content aligner.
+    
+    TASK:
+    Given a full lesson script and a set of slides, segment the script and assign each segment to the most relevant slide.
+    
+    CONTEXT (Slides):
+    {context_str}
+    
+    INPUT SCRIPT:
+    {script}
+    
+    INSTRUCTIONS:
+    1. Break the script into logical segments based on topic shifts.
+    2. For each segment, identify the single most relevant slide number.
+    3. Ensure the ENTIRE script is covered, in the original order.
+    4. Segments should be relatively long (paragraphs), not single sentences, unless the slide changes rapidly.
+    
+    OUTPUT FORMAT:
+    Return a strictly valid JSON list of objects:
+    [
+        {{ "text": "First part of the script...", "slide_number": 1 }},
+        {{ "text": "Second part moving to next topic...", "slide_number": 2 }},
+        ...
+    ]
+    """
+
+    async with httpx.AsyncClient(timeout=120.0) as client:
+        response = await client.post(
+            f"{GEMINI_URL}?key={settings.GEMINI_API_KEY}",
+            headers={"Content-Type": "application/json"},
+            json={
+                "systemInstruction": {"parts": [{"text": system_instruction}]},
+                "contents": [{"parts": [{"text": "Align this script."}]}],
+                "generationConfig": {"response_mime_type": "application/json"}
+            },
+        )
+        response.raise_for_status()
+        data = response.json()
+
+    try:
+        text_response = data["candidates"][0]["content"]["parts"][0]["text"]
+        
+        # JSON cleanup if needed
+        clean_json = text_response.strip()
+        if clean_json.startswith("```"):
+            lines = clean_json.split("\n")
+            if lines[0].startswith("```"): lines = lines[1:]
+            if lines[-1].startswith("```"): lines = lines[:-1]
+            clean_json = "\n".join(lines).strip()
+            
+        segments = json.loads(clean_json)
+        print(f"Alignment successful: {len(segments)} segments created.")
+        return segments
+    except Exception as e:
+        print(f"Error aligning script: {e}")
+        # Fallback: assign entire script to slide 1
+        return [{"text": script, "slide_number": 1}]

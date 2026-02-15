@@ -1,8 +1,8 @@
 import httpx
 from fastapi import APIRouter, HTTPException
 
-from app.models.base import AskRequest, AskResponse, SlideAnalysisRequest, SlideContext, SlideChatRequest, SlideChatResponse
-from app.services.ask_service import answer_question, analyze_slides, chat_with_slides
+from app.models.base import AskRequest, AskResponse, SlideAnalysisRequest, SlideContext, SlideChatRequest, SlideChatResponse, ScriptAlignmentRequest, ScriptAlignmentResponse
+from app.services.ask_service import answer_question, analyze_slides, chat_with_slides, align_script_with_slides
 
 router = APIRouter(prefix="/ask", tags=["Ask"])
 
@@ -66,5 +66,17 @@ async def chat_endpoint(payload: SlideChatRequest):
             payload.history
         )
         return SlideChatResponse(**result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/align", response_model=ScriptAlignmentResponse)
+async def align_endpoint(payload: ScriptAlignmentRequest):
+    """
+    Align a script with slides for synchronized playback.
+    """
+    try:
+        segments = await align_script_with_slides(payload.script, payload.context)
+        return ScriptAlignmentResponse(segments=segments)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

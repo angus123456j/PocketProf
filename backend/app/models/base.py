@@ -76,3 +76,14 @@ class SlideChatResponse(BaseModel):
     """Response from slide chat."""
     answer: str
     suggested_slide: int | None = None
+
+
+class ScriptAlignmentRequest(BaseModel):
+    """Request to align script with slides."""
+    script: str
+    context: list[SlideContext]
+
+
+class ScriptAlignmentResponse(BaseModel):
+    """Response from script alignment."""
+    segments: list[dict]  # [{"text": "...", "slide_number": 1}, ...]

@@ -395,45 +395,121 @@ function App() {
     return new Blob([buffer], { type: "audio/wav" });
   };
 
+  const playAudioSegment = (text) => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const res = await fetch(`${API_BASE}/lightning/stream`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ latex_summary: text, anchors_enabled: false }),
+        });
+        if (!res.ok) throw new Error("TTS failed");
+        const pcmBuffer = await res.arrayBuffer();
+        const wavBlob = pcmToWavBlob(pcmBuffer, 24000);
+        const url = URL.createObjectURL(wavBlob);
+        const audio = new Audio(url);
+        lightningAudioRef.current = audio;
+
+        audio.onended = () => {
+          URL.revokeObjectURL(url);
+          resolve();
+        };
+        audio.onerror = (e) => {
+          URL.revokeObjectURL(url);
+          reject(e);
+        };
+        await audio.play();
+        setLightningStatus("playing");
+        setLightningPaused(false);
+      } catch (err) {
+        reject(err);
+      }
+    });
+  };
+
   const startLightningTts = useCallback(async () => {
     const text = (importedNotesText || "").trim();
     if (!text) return;
     setError("");
     setLightningStatus("loading");
-    try {
-      const res = await fetch(`${API_BASE}/lightning/stream`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ latex_summary: text, anchors_enabled: false }),
-      });
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(errText || res.statusText);
+    console.log("startLightningTts: starting lesson playback", {
+      hasText: !!text,
+      pages: slidePages.length,
+      hasContext: !!slideContext
+    });
+
+    // Check if we need lazy analysis for lesson playback
+    let currentContext = slideContext;
+    if (slidePages.length > 0 && !currentContext) {
+      try {
+        console.log("startLightningTts: triggering lazy slide analysis before alignment...");
+        const res = await fetch(`${API_BASE}/ask/analyze`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ images: slidePages }),
+        });
+        if (!res.ok) throw new Error("Failed to analyze slides for alignment");
+        currentContext = await res.json();
+        setSlideContext(currentContext);
+      } catch (e) {
+        console.error("startLightningTts: lazy analysis failed", e);
       }
-      const pcmBuffer = await res.arrayBuffer();
-      const wavBlob = pcmToWavBlob(pcmBuffer, 24000);
-      const url = URL.createObjectURL(wavBlob);
-      const audio = new Audio(url);
-      lightningAudioRef.current = audio;
-      audio.onended = () => {
-        URL.revokeObjectURL(url);
+    }
+
+    // ALIGNMENT LOGIC
+    if (currentContext && slidePages.length > 0) {
+      try {
+        console.log("startLightningTts: requesting alignment...");
+        const alignRes = await fetch(`${API_BASE}/ask/align`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ script: text, context: currentContext }),
+        });
+        if (!alignRes.ok) throw new Error("Alignment failed");
+        const alignData = await alignRes.json();
+        const segments = alignData.segments;
+
+        console.log("startLightningTts: aligned segments received", segments);
+
+        for (const segment of segments) {
+          // Switch slide
+          const slideNum = segment.slide_number;
+          const targetIndex = slideNum - 1;
+          console.log(`startLightningTts: playing segment for slide ${slideNum} (index ${targetIndex})`);
+
+          if (targetIndex >= 0 && targetIndex < slidePages.length) {
+            console.log(`startLightningTts: switching to slide index ${targetIndex}`);
+            setCurrentSlide(targetIndex);
+          } else {
+            console.warn(`startLightningTts: Invalid slide index ${targetIndex} for ${slidePages.length} pages`);
+          }
+
+          // Play audio
+          await playAudioSegment(segment.text);
+
+          // Check if stopped/paused in between? 
+          // For simplicity, we assume continuous playback for now.
+          // Refactoring to support pause in loop is complex without an abort controller or state check.
+        }
         setLightningStatus("idle");
-        setLightningPaused(false);
-      };
-      audio.onerror = () => {
-        URL.revokeObjectURL(url);
-        setLightningStatus("idle");
-        setLightningPaused(false);
-        setError("Audio playback failed");
-      };
-      await audio.play();
-      setLightningStatus("playing");
-      setLightningPaused(false);
+        return;
+      } catch (e) {
+        console.warn("Alignment failed, falling back to simple playback", e);
+        // Fallthrough to simple playback
+      }
+    }
+
+    // FALLBACK / SIMPLE PLAYBACK
+    try {
+      console.log("startLightningTts: playing full audio (no alignment/fallback)");
+      await playAudioSegment(text);
+      setLightningStatus("idle");
     } catch (err) {
+      console.error("startLightningTts: simple playback failed", err);
       setError(err?.message || "Lightning TTS failed");
       setLightningStatus("idle");
     }
-  }, [importedNotesText]);
+  }, [importedNotesText, slideContext, slidePages]);
 
   const pauseLightningTts = useCallback(() => {
     const audio = lightningAudioRef.current;
