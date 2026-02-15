@@ -1307,7 +1307,33 @@ h1 {
 .header-left {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1.5rem;
+}
+
+.current-voice-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: rgba(124, 58, 237, 0.08);
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(124, 58, 237, 0.2);
+}
+
+.mini-pfp {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  object-fit: cover;
+  border: 1px solid #7c3aed;
+}
+
+.mini-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #7c3aed;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 .slide-player-header h2 {

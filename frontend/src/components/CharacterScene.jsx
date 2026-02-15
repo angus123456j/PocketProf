@@ -71,7 +71,7 @@ function Stage() {
     );
 }
 
-const characters = [
+export const characters = [
     { id: 1, name: 'Sophia', voiceId: 'sophia', file: '/character-1.glb', color: '#fff', label: 'S' },
     { id: 2, name: 'Rachel', voiceId: 'rachel', file: '/character-2.glb', color: '#fff', label: 'R' },
     { id: 3, name: 'Jordan', voiceId: 'jordan', file: '/character-3.glb', color: '#fff', label: 'J' },

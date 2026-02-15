@@ -1,7 +1,7 @@
 import { useRef, useState, useCallback } from "react";
 import * as pdfjsLib from "pdfjs-dist";
 import "pdfjs-dist/build/pdf.worker.min.mjs";
-import CharacterScene from "./components/CharacterScene";
+import CharacterScene, { characters } from "./components/CharacterScene";
 import "./App.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "/api";
@@ -50,6 +50,8 @@ function App() {
   const [selectedVoiceId, setSelectedVoiceId] = useState("sophia");
   const [sessionFinished, setSessionFinished] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+
+  const selectedCharacter = characters.find(c => c.voiceId === selectedVoiceId);
 
   const askRecorderRef = useRef(null);
   const askChunksRef = useRef([]);
@@ -966,6 +968,16 @@ function App() {
                 <span className="slide-counter">
                   Slide {currentSlide + 1} of {slidePages.length}
                 </span>
+                {selectedCharacter && (
+                  <div className="current-voice-indicator">
+                    <img
+                      src={`/character-${selectedCharacter.id}-pfp.png`}
+                      alt={selectedCharacter.name}
+                      className="mini-pfp"
+                    />
+                    <span className="mini-name">{selectedCharacter.name}</span>
+                  </div>
+                )}
               </div>
               <button type="button" className="btn-back" onClick={handleExitRequest}>
                 ← Home
