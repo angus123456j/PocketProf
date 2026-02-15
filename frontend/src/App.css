@@ -1,31 +1,58 @@
 /* ================================================================
-   HOME PAGE — Black and white theme
+   HOME PAGE — Greptile-style (beige, matte textured)
    ================================================================ */
 .home {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: #0a0a0a;
-  color: #fff;
+  background-color: #e9e8e2;
+  /* Matte textured beige — layered dot + fine grain */
+  background-image:
+    radial-gradient(rgba(0, 0, 0, 0.06) 1px, transparent 1px),
+    radial-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+  background-size: 24px 24px, 12px 12px;
+  background-position: 0 0, 0 0;
+  color: #333;
   overflow-x: hidden;
   position: relative;
 }
 
+/* Header — light bar with icons (Greptile style) */
 .home-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.5rem 3rem;
+  padding: 1rem 2.5rem;
+  background: #e9e8e2;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   position: relative;
   z-index: 10;
 }
 
+.home-header-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.home-logo-icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #338e55;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 800;
+  border-radius: 6px;
+}
+
 .home-brand {
   font-size: 1.1rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  color: #fff;
-  font-style: italic;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #338e55;
 }
 
 .home-nav {
@@ -35,185 +62,238 @@
 }
 
 .home-nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
+  color: #333;
+  font-size: 0.9rem;
+  font-weight: 500;
   cursor: pointer;
   padding: 0;
 }
 
 .home-nav-link:hover {
-  color: #fff;
+  color: #338e55;
 }
 
-.home-nav-contact {
-  background: none;
-  border: 1.5px solid rgba(255, 255, 255, 0.6);
-  color: #fff;
-  font-size: 0.8rem;
+.home-nav-icon {
+  font-size: 0.85em;
+  opacity: 0.9;
+}
+
+.home-nav-chevron {
+  font-size: 0.7em;
+  opacity: 0.7;
+  margin-left: 0.15rem;
+}
+
+.home-nav-btn {
+  padding: 0.5rem 1.25rem;
+  font-size: 0.9rem;
   font-weight: 600;
-  letter-spacing: 0.1em;
+  border: none;
+  border-radius: 6px;
   cursor: pointer;
-  padding: 0.45rem 1.25rem;
-  border-radius: 999px;
+  color: #fff;
 }
 
-.home-nav-contact:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: #fff;
+.home-nav-signin {
+  background: #1a4325;
 }
 
-.home-hero {
+.home-nav-start {
+  background: #2e8b57;
+}
+
+.home-nav-signin:hover,
+.home-nav-start:hover {
+  opacity: 0.92;
+}
+
+/* Middle section — centered column (Greptile-style) */
+.home-middle {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  box-sizing: border-box;
+}
+
+/* Hero — two-column: left content, right area */
+.home-middle .home-hero {
   flex: 1;
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 0;
-  min-height: 42vh;
+  gap: 1.25rem;
+  width: 100%;
+  padding: 3rem 0 4rem;
+  min-height: 50vh;
   overflow: hidden;
   position: relative;
   z-index: 3;
+  box-sizing: border-box;
+}
+
+.home-hero-content {
+  flex: 0 1 520px;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.home-hero-right {
+  flex: 1;
+  min-height: 320px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.home-hero-img {
+  width: 100%;
+  max-width: 480px;
+  height: auto;
+  object-fit: contain;
+  object-position: right center;
+  margin-left: auto;
+  transform: translateX(3rem);
 }
 
 .home-hero-title {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: nowrap;
-  gap: 0.4em;
-  text-align: center;
   margin: 0;
-  line-height: 1;
+  font-size: clamp(2.5rem, 5vw, 4.5rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: #338e55;
   user-select: none;
-  width: 100%;
 }
 
-.home-hero-top,
-.home-hero-bottom {
-  display: inline-block;
-  font-size: 8.5vw;
-  font-weight: 900;
+.home-hero-sub {
+  margin: 1.5rem 0 1rem;
+  font-size: 1.1rem;
+  font-weight: 500;
   letter-spacing: 0.02em;
-  color: #fff;
-  font-style: normal;
-  text-transform: uppercase;
-  transform: scaleY(0.95);
+  line-height: 1.6;
+  color: #338e55;
 }
 
-.home-hero-bottom {
-  margin: 0;
-}
-
-.home-cta {
-  text-align: center;
-  padding: 1rem 2rem 4rem;
-  margin-top: -2.5rem;
-}
-
-.home-tagline {
-  font-size: 1.05rem;
-  line-height: 1.7;
-  color: rgba(255, 255, 255, 0.8);
+.home-hero-detail {
   margin: 0 0 2rem;
-}
-
-.home-tagline em {
-  font-style: italic;
-  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.95rem;
+  font-weight: 400;
+  line-height: 1.65;
+  color: #555;
 }
 
 .home-enter-btn {
   display: inline-block;
-  padding: 1.1rem 4rem;
+  padding: 0.9rem 2rem;
   font-size: 1rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  background: #fff;
-  color: #333;
+  font-weight: 600;
+  background: #338e55;
+  color: #fff;
   border: none;
-  border-radius: 999px;
+  border-radius: 8px;
   cursor: pointer;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
 }
 
 .home-enter-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  background: #2d7a4a;
 }
 
-.ticker-wrap {
-  overflow: hidden;
-  width: 100%;
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-  padding: 0.75rem 0;
-  margin-top: 3rem;
+.home-cta-small {
+  margin: 0.75rem 0 0;
+  font-size: 0.75rem;
+  color: #888;
 }
 
-.ticker {
+/* Partner / sponsor section — bottom, static row */
+.home-partners {
+  margin-top: auto;
+  padding: 2rem 2.5rem 1.5rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  text-align: center;
+}
+
+.home-middle .home-partners {
+  padding: 2rem 0 1.5rem;
+}
+
+.home-partners-intro {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+  color: #555;
+}
+
+.home-partners-cta {
+  color: #338e55;
+  cursor: pointer;
+}
+
+.home-partners-cta:hover {
+  text-decoration: underline;
+}
+
+.home-sponsor-row {
   display: flex;
   align-items: center;
-  white-space: nowrap;
-  animation: ticker-scroll 30s linear infinite;
-  width: max-content;
-}
-
-.ticker-group {
-  display: flex;
-  align-items: center;
+  justify-content: center;
   gap: 2rem;
-  margin-right: 2rem;
+  flex-wrap: wrap;
+  min-height: 2.25rem;
+  line-height: 1;
 }
 
-.ticker-item {
-  font-size: 0.7rem;
+.home-sponsor-row .ticker-item {
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
-  color: #fff;
+  letter-spacing: 0.1em;
+  color: #555;
 }
 
-.ticker-dot {
+.home-sponsor-row .ticker-dot {
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.7);
+  background: #999;
   flex-shrink: 0;
-}
-
-@keyframes ticker-scroll {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
 }
 
 .home-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.5rem 3rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 1.25rem 2.5rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .home-footer-brand {
   font-size: 0.75rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  font-style: italic;
-  color: rgba(255, 255, 255, 0.7);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: #666;
 }
 
 .home-footer-links {
   display: flex;
-  gap: 2.5rem;
+  gap: 2rem;
 }
 
 .home-footer-links span {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.1em;
-  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 0.06em;
+  color: #666;
+  cursor: pointer;
 }
 
 /* ================================================================

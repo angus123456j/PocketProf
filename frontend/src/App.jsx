@@ -788,60 +788,56 @@ function App() {
   if (page === "home") {
     return (
       <div className="home">
-        {/* Header */}
+        {/* Header — brand only */}
         <header className="home-header">
-          <span className="home-brand">POCKETPROF</span>
-          <nav className="home-nav">
-            <button className="home-nav-link" onClick={() => setPage("tool")}>
-              STUDY
-            </button>
-            <button className="home-nav-link" onClick={() => setPage("tool")}>
-              LAB
-            </button>
-            <button className="home-nav-contact" onClick={() => setPage("tool")}>
-              CONTACT
-            </button>
-          </nav>
+          <div className="home-header-brand">
+            <span className="home-logo-icon">P</span>
+            <span className="home-brand">POCKETPROF</span>
+          </div>
         </header>
 
-        {/* Hero */}
-        <section className="home-hero">
-          <h1 className="home-hero-title">
-            <span className="home-hero-top">POCKET</span>
-            <span className="home-hero-bottom">PROF</span>
-          </h1>
-        </section>
+        {/* Middle section — centered content (text + image + partners) */}
+        <div className="home-middle">
+          <section className="home-hero">
+            <div className="home-hero-content">
+              <h1 className="home-hero-title">The AI Learning Partner</h1>
+              <p className="home-hero-sub">
+                Turn messy recordings and slide decks into clean, structured notes. Ask questions in plain English—get answers with full context of your course.
+              </p>
+              <p className="home-hero-detail">
+                Upload an MP3 or record live. Our AI extracts key concepts, organizes your content, and lets you study smarter—not harder.
+              </p>
+              <button className="home-enter-btn" onClick={() => setPage("tool")}>
+                Try For Free →
+              </button>
+              <p className="home-cta-small">No credit card required · 14-day free trial</p>
+            </div>
+            <div className="home-hero-right">
+              <img src="/frontendimg.png" alt="" className="home-hero-img" />
+            </div>
+          </section>
 
-        {/* Tagline + CTA */}
-        <section className="home-cta">
-          <p className="home-tagline">
-            An advanced cognitive partner,<br />
-            <em>redefining the future of learning.</em>
+          {/* Sponsor row — bottom, static, no scroll */}
+          <section className="home-partners">
+          <p className="home-partners-intro">
+            Students and educators use PocketProf to turn lecture chaos into clarity.{" "}
+            <span className="home-partners-cta" onClick={() => setPage("tool")} role="button" tabIndex={0}>Enter the Lab and see how it works →</span>
           </p>
-          <button className="home-enter-btn" onClick={() => setPage("tool")}>
-            ENTER THE LAB
-          </button>
-        </section>
-
-        {/* Powered-by ticker */}
-        <div className="ticker-wrap">
-          <div className="ticker">
-            {[...Array(8)].map((_, i) => (
-              <span key={i} className="ticker-group">
-                <span className="ticker-item">SMALLEST.AI</span>
-                <span className="ticker-dot" />
-                <span className="ticker-item">GOOGLE GEMINI</span>
-                <span className="ticker-dot" />
-                <span className="ticker-item">PIPECAT</span>
-                <span className="ticker-dot" />
-              </span>
-            ))}
+          <div className="home-sponsor-row">
+            <span className="ticker-item">SMALLEST.AI</span>
+            <span className="ticker-dot" />
+            <span className="ticker-item">GOOGLE GEMINI</span>
+            <span className="ticker-dot" />
+            <span className="ticker-item">LIGHTNING</span>
+            <span className="ticker-dot" />
+            <span className="ticker-item">PULSE</span>
           </div>
+          </section>
         </div>
 
         {/* Footer */}
         <footer className="home-footer">
-          <span className="home-footer-brand">POCKETPROF &copy; 2025</span>
+          <span className="home-footer-brand">POCKETPROF &copy; 2026</span>
           <nav className="home-footer-links">
             <span>PRIVACY</span>
             <span>TEAM</span>
