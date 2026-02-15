@@ -388,30 +388,36 @@
 }
 
 .character-pfp {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
+  width: 52px;
+  height: 52px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  font-weight: 700;
-  font-size: 1rem;
+  overflow: hidden;
   margin-bottom: 0.35rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   border: 3px solid transparent;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: #fff;
+}
+
+.pfp-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .character-item.active .character-pfp {
   border-color: #338e55;
-  box-shadow: 0 0 15px rgba(51, 142, 85, 0.3);
+  box-shadow: 0 0 15px rgba(51, 142, 85, 0.4);
+  transform: scale(1.05);
 }
 
 .character-name-bottom {
   font-size: 0.75rem;
   font-weight: 800;
-  color: #1a1a1a;
+  color: #338e55;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   margin-top: 0.2rem;
@@ -1907,5 +1913,173 @@ h1 {
     min-width: unset;
     border-left: none;
     border-top: 1px solid rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* Exit Modal */
+.exit-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  animation: fadeIn 0.15s ease;
+}
+
+.exit-modal {
+  background: #f5f4f0;
+  padding: 2.25rem;
+  border-radius: 20px;
+  max-width: 420px;
+  width: 90%;
+  text-align: center;
+  border: 4px solid #338e55;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.exit-modal h2 {
+  margin-top: 0;
+  font-size: 1.5rem;
+  color: #338e55;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.exit-modal p {
+  color: #444;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 1rem 0 2rem;
+  font-weight: 500;
+}
+
+.exit-modal-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.btn-confirm-exit {
+  background: #338e55;
+  color: white;
+  padding: 0.8rem 1.75rem;
+  border-radius: 10px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(51, 142, 85, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.btn-confirm-exit:hover {
+  background: #2d7a4a;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(51, 142, 85, 0.4);
+}
+
+.btn-cancel-exit {
+  background: transparent;
+  color: #555;
+  padding: 0.8rem 1.75rem;
+  border-radius: 10px;
+  border: 1.5px solid rgba(0, 0, 0, 0.1);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-cancel-exit:hover {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.2);
+}
+
+/* Finished Actions */
+.finished-actions {
+  margin-top: 2rem;
+  padding: 1.75rem;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 16px;
+  border: 2px solid rgba(51, 142, 85, 0.1);
+  text-align: center;
+  animation: fadeIn 0.6s ease;
+}
+
+.finished-msg {
+  font-size: 1rem;
+  color: #555;
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+.btn-ask-large {
+  display: block;
+  width: 100%;
+  background: #338e55;
+  color: white;
+  padding: 1rem;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 1.05rem;
+  margin-bottom: 0.75rem;
+  box-shadow: 0 4px 15px rgba(51, 142, 85, 0.2);
+  border: none;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.btn-ask-large:hover {
+  background: #2d7a4a;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(51, 142, 85, 0.3);
+}
+
+.btn-exit-session {
+  display: block;
+  width: 100%;
+  background: transparent;
+  color: #666;
+  padding: 0.9rem;
+  border-radius: 12px;
+  font-weight: 600;
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-exit-session:hover {
+  background: rgba(51, 142, 85, 0.05);
+  color: #338e55;
+  border-color: #338e55;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
   }
 }

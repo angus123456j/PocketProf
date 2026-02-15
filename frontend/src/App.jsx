@@ -48,6 +48,8 @@ function App() {
   const [askStatus, setAskStatus] = useState("idle"); // idle | recording | transcribing | loading | speaking
   const [askRecording, setAskRecording] = useState(false);
   const [selectedVoiceId, setSelectedVoiceId] = useState("sophia");
+  const [sessionFinished, setSessionFinished] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   const askRecorderRef = useRef(null);
   const askChunksRef = useRef([]);
@@ -498,6 +500,7 @@ function App() {
           // For simplicity, we assume continuous playback for now.
           // Refactoring to support pause in loop is complex without an abort controller or state check.
         }
+        setSessionFinished(true);
         setLightningStatus("idle");
         return;
       } catch (e) {
@@ -510,6 +513,7 @@ function App() {
     try {
       console.log("startLightningTts: playing full audio (no alignment/fallback)");
       await playAudioSegment(text);
+      setSessionFinished(true);
       setLightningStatus("idle");
     } catch (err) {
       console.error("startLightningTts: simple playback failed", err);
@@ -714,7 +718,7 @@ function App() {
         }
 
         const lessonAudio = lightningAudioRef.current;
-        if (lessonAudio && lessonAudio.paused) {
+        if (lessonAudio && lessonAudio.paused && !sessionFinished) {
           lessonAudio.play();
           setLightningPaused(false);
         }
@@ -847,6 +851,20 @@ function App() {
     setSlideContext(null);
     setCurrentSlide(0);
     setShowSlidePlayer(false);
+    setSlideFile(null);
+    setSlidePages([]);
+    setImportedNotesText("");
+    setImportedNotesFileName("");
+    setSessionFinished(false);
+    setShowExitConfirm(false);
+    if (lightningAudioRef.current) {
+      lightningAudioRef.current.pause();
+      lightningAudioRef.current = null;
+    }
+    if (responseAudioRef.current) {
+      responseAudioRef.current.pause();
+      responseAudioRef.current = null;
+    }
   };
 
   const goToSlidePlayer = () => {
@@ -854,8 +872,16 @@ function App() {
     setCurrentSlide(0);
   };
 
-  const goBackFromSlides = () => {
-    setShowSlidePlayer(false);
+  const handleExitRequest = () => {
+    setShowExitConfirm(true);
+  };
+
+  const confirmExit = () => {
+    goHome();
+  };
+
+  const cancelExit = () => {
+    setShowExitConfirm(false);
   };
 
   const goToPrevSlide = () => {
@@ -941,7 +967,7 @@ function App() {
                   Slide {currentSlide + 1} of {slidePages.length}
                 </span>
               </div>
-              <button type="button" className="btn-back" onClick={goBackFromSlides}>
+              <button type="button" className="btn-back" onClick={handleExitRequest}>
                 ← Back
               </button>
             </div>
@@ -1011,30 +1037,34 @@ function App() {
                 className="file-input"
                 aria-hidden="true"
               />
-              <button
-                type="button"
-                className="btn btn-import-notes"
-                onClick={() => importedTxtInputRef.current?.click()}
-              >
-                Import downloaded text
-              </button>
+              {!sessionFinished && (
+                <button
+                  type="button"
+                  className="btn btn-import-notes"
+                  onClick={() => importedTxtInputRef.current?.click()}
+                >
+                  Import downloaded text
+                </button>
+              )}
               {importedNotesText && (
                 <>
                   <p className="imported-notes-label">
                     {importedNotesFileName ? `Ready: ${importedNotesFileName}` : "Ready"}
                   </p>
-                  <button
-                    type="button"
-                    className="btn btn-start-tts"
-                    onClick={startLightningTts}
-                    disabled={lightningStatus === "loading" || lightningStatus === "playing"}
-                  >
-                    {lightningStatus === "loading"
-                      ? "Loading…"
-                      : lightningStatus === "playing"
-                        ? "Playing…"
-                        : "Start"}
-                  </button>
+                  {!sessionFinished && (
+                    <button
+                      type="button"
+                      className="btn btn-start-tts"
+                      onClick={startLightningTts}
+                      disabled={lightningStatus === "loading" || lightningStatus === "playing"}
+                    >
+                      {lightningStatus === "loading"
+                        ? "Loading…"
+                        : lightningStatus === "playing"
+                          ? "Playing…"
+                          : "Start"}
+                    </button>
+                  )}
                   {lightningStatus === "playing" && (
                     <button
                       type="button"
@@ -1044,7 +1074,26 @@ function App() {
                       {lightningPaused ? "Resume" : "Pause"}
                     </button>
                   )}
-                  {lightningStatus === "playing" && !askInputVisible && (
+                  {sessionFinished && !askInputVisible && (
+                    <div className="finished-actions">
+                      <p className="finished-msg">Lesson complete. You can ask questions or exit.</p>
+                      <button
+                        type="button"
+                        className="btn btn-ask-large"
+                        onClick={openAskInput}
+                      >
+                        Ask a Question
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-exit-session"
+                        onClick={handleExitRequest}
+                      >
+                        Exit Session
+                      </button>
+                    </div>
+                  )}
+                  {lightningStatus === "playing" && !askInputVisible && !sessionFinished && (
                     <button
                       type="button"
                       className="btn btn-ask-tts"
@@ -1108,6 +1157,18 @@ function App() {
             </div>
           </aside>
         </div>
+        {showExitConfirm && (
+          <div className="exit-modal-overlay">
+            <div className="exit-modal">
+              <h2>Confirm Exit</h2>
+              <p>Are you sure you want to exit? This will delete all context and uploaded data for this session.</p>
+              <div className="exit-modal-actions">
+                <button className="btn btn-confirm-exit" onClick={confirmExit}>Yes, Exit</button>
+                <button className="btn btn-cancel-exit" onClick={cancelExit}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -1118,7 +1179,7 @@ function App() {
       <div className="app-body">
         <main className="main lab-cards no-scroll">
           <div className="lab-page-header">
-            <h1 className="lab-heading">Setup PocketProf</h1>
+            <h1 className="lab-heading">Set Up PocketProf</h1>
             <button type="button" className="btn-back" onClick={goHome}>
               ← Back
             </button>
@@ -1238,6 +1299,18 @@ function App() {
               {livePartial && <p className="partial">{livePartial}</p>}
             </div>
           </aside>
+        )}
+        {showExitConfirm && (
+          <div className="exit-modal-overlay">
+            <div className="exit-modal">
+              <h2>Confirm Exit</h2>
+              <p>Are you sure you want to exit? This will delete all context and uploaded data for this session.</p>
+              <div className="exit-modal-actions">
+                <button className="btn btn-confirm-exit" onClick={confirmExit}>Yes, Exit</button>
+                <button className="btn btn-cancel-exit" onClick={cancelExit}>Cancel</button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

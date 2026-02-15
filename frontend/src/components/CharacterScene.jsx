@@ -72,10 +72,10 @@ function Stage() {
 }
 
 const characters = [
-    { id: 1, name: 'Sophia', voiceId: 'sophia', file: '/character-1.glb', color: 'linear-gradient(135deg, #ff0844 0%, #ffb199 100%)', label: 'S' },
-    { id: 2, name: 'Rachel', voiceId: 'rachel', file: '/character-2.glb', color: 'linear-gradient(135deg, #00f2fe 0%, #4facfe 100%)', label: 'R' },
-    { id: 3, name: 'Jordan', voiceId: 'jordan', file: '/character-3.glb', color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', label: 'J' },
-    { id: 4, name: 'Arjun', voiceId: 'arjun', file: '/character-4.glb', color: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', label: 'A' },
+    { id: 1, name: 'Sophia', voiceId: 'sophia', file: '/character-1.glb', color: '#fff', label: 'S' },
+    { id: 2, name: 'Rachel', voiceId: 'rachel', file: '/character-2.glb', color: '#fff', label: 'R' },
+    { id: 3, name: 'Jordan', voiceId: 'jordan', file: '/character-3.glb', color: '#fff', label: 'J' },
+    { id: 4, name: 'Arjun', voiceId: 'arjun', file: '/character-4.glb', color: '#fff', label: 'A' },
 ];
 
 export default function CharacterScene({ onVoiceSelect }) {
@@ -146,7 +146,11 @@ export default function CharacterScene({ onVoiceSelect }) {
                             onClick={() => setCurrentIndex(index)}
                         >
                             <div className="character-pfp" style={{ background: char.color }}>
-                                <span className="pfp-initial">{char.label}</span>
+                                <img
+                                    src={`/character-${char.id}-pfp.png`}
+                                    alt={char.name}
+                                    className="pfp-image"
+                                />
                             </div>
                             <span className="character-name-bottom">{char.name}</span>
                         </div>
