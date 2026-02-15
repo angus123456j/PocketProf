@@ -61,11 +61,11 @@ function Stage() {
         <group position={[0, -2, 0]}>
             <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
                 <circleGeometry args={[2.5, 64]} />
-                <meshStandardMaterial color="#338e55" opacity={0.3} transparent />
+                <meshStandardMaterial color="#7c3aed" opacity={0.3} transparent />
             </mesh>
             <mesh position={[0, -0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
                 <ringGeometry args={[2.4, 2.5, 64]} />
-                <meshStandardMaterial color="#338e55" />
+                <meshStandardMaterial color="#7c3aed" />
             </mesh>
         </group>
     );
@@ -104,7 +104,7 @@ export default function CharacterScene({ onVoiceSelect }) {
                         <PerspectiveCamera makeDefault position={[0, 0, 10]} fov={35} />
                         <ambientLight intensity={1.2} />
                         <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={2} castShadow />
-                        <pointLight position={[-10, 5, -5]} intensity={1} color="#338e55" />
+                        <pointLight position={[-10, 5, -5]} intensity={1} color="#7c3aed" />
                         <directionalLight position={[0, 5, 5]} intensity={0.5} />
 
                         <Suspense fallback={<Html center><div className="loader-orbit"></div></Html>}>

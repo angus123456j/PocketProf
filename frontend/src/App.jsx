@@ -968,7 +968,7 @@ function App() {
                 </span>
               </div>
               <button type="button" className="btn-back" onClick={handleExitRequest}>
-                ← Back
+                ← Home
               </button>
             </div>
 
@@ -1181,7 +1181,7 @@ function App() {
           <div className="lab-page-header">
             <h1 className="lab-heading">Set Up PocketProf</h1>
             <button type="button" className="btn-back" onClick={goHome}>
-              ← Back
+              ← Home
             </button>
           </div>
           <p className="subtitle">Import your lecture information</p>
