@@ -26,7 +26,8 @@ app.add_middleware(
         "http://127.0.0.1:5500",
         "http://localhost:5500",
     ],
-    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
+    # Localhost (any port) + Vercel production and preview deployments
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$|^https://[\w-]+\.vercel\.app$",
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],

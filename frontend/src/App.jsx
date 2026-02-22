@@ -960,9 +960,9 @@ function App() {
                   <div key={group} className="home-sponsor-row">
                     <span className="ticker-item">SMALLEST.AI</span>
                     <span className="ticker-dot" />
-                    <span className="ticker-item">LIGHTNING</span>
+                    <span className="ticker-item">LIGHTNING V3.1</span>
                     <span className="ticker-dot" />
-                    <span className="ticker-item">PULSE</span>
+                    <span className="ticker-item">PULSE </span>
                     <span className="ticker-dot" />
                     <span className="ticker-item">GOOGLE GEMINI</span>
                     <span className="ticker-dot" />
