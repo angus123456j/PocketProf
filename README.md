@@ -119,70 +119,6 @@ When a student misses a class—whether from scheduling conflicts, an early 8:30
 
 ---
 
-## Demo Instructions
-
-**Prerequisites**
-
-- Python 3.10+ (backend)
-- Node 18+ (frontend)
-- Smallest.ai API key (Pulse + Lightning)
-- Google Gemini API key (Parse + Ask)
-
-**Backend**
-
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate   # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-cp .env.example .env
-```
-
-Edit `.env`:
-
-- `SMALLEST_API_KEY` — your Smallest.ai API key (required for Pulse and Lightning).
-- `GEMINI_API_KEY` — your Google Gemini API key (required for Parse and Ask).
-- Optional: `SMALLEST_VOICE_ID`, `PORT`, `LIGHTNING_API_URL`; defaults are in `.env.example`.
-
-```bash
-uvicorn app.main:app --reload
-```
-
-Backend: `http://127.0.0.1:8000`. Docs: `http://127.0.0.1:8000/docs`.
-
-**Frontend**
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Frontend: `http://localhost:5173`. The app proxies `/api` and WebSockets to `http://127.0.0.1:8000`; no `VITE_API_URL` needed for local dev.
-
-**Quick test**
-
-1. Open `http://localhost:5173`.  
-2. Pick a character (voice), optionally click “Play sample”.  
-3. Click “Get Started” → Lab.  
-4. Upload an MP3 or record live → click Parse → use the result overlay to download .txt.  
-5. Optionally upload a PDF → View Slides → Slide Player: import notes, Start TTS, then Ask with voice.
-
----
-
-## Example Interaction
-
-**User (after uploading a lecture MP3 and parsing):**  
-*[Clicks Download .txt, then uploads PDF, then View Slides, then Start TTS. Listens to the lesson.]*
-
-**User (speaks):**  
-“What was the main point of the first section?”
-
-**Agent (after Pulse transcribes, Ask + Gemini, Lightning TTS):**  
-“The main point of the first section was that voice interfaces can reduce cognitive load when reviewing long material. The system was designed so you can listen and ask follow-ups without switching to typing.”
-
----
-
 ## Repository Structure
 
 ```
@@ -224,5 +160,6 @@ pocketprof/
 - **Robustness**: Stricter error handling and retries for Pulse/Lightning; clearer frontend errors when keys are missing or quotas hit.
 - **Session**: Persist session or project (transcript + notes + slide refs) so users can return without re-uploading.
 - **Electron/Hydra**: Current flow uses Parse + Ask; evaluate whether Electron or Hydra routes add value or can be removed to simplify the stack.
+
 
 
