@@ -2,7 +2,7 @@
 
 **Voice-first AI lecture assistant: capture speech, get structured notes, listen to an AI professor, and ask questions with your voice.**
 
-
+## [Demo](https://www.linkedin.com/posts/angus-lang_you-skip-the-830-lecture-youre-sick-you-activity-7429252274524315648-wTCK?utm_source=share&utm_medium=member_desktop&rcm=ACoAAEh_ikEBCmA7Sn_i0EfqB8EgDsUlsJGmkOE)
 
 ---
 
@@ -160,6 +160,7 @@ pocketprof/
 - **Robustness**: Stricter error handling and retries for Pulse/Lightning; clearer frontend errors when keys are missing or quotas hit.
 - **Session**: Persist session or project (transcript + notes + slide refs) so users can return without re-uploading.
 - **Electron/Hydra**: Current flow uses Parse + Ask; evaluate whether Electron or Hydra routes add value or can be removed to simplify the stack.
+
 
 
 
